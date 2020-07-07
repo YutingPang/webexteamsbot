@@ -64,8 +64,9 @@ def greeting(incoming_msg):
 
     # Create a Response object and craft a reply in Markdown.
     response = Response()
-    response.markdown = "Hello {}, I'm a chat bot. ".format(sender.firstName)
-    response.markdown += "See what I can do by asking for **/help**."
+    response.markdown = "Hello {}, I'm dCloud Support bot. ".format(sender.firstName)
+    response.markdown += "Enter **/support** to start chatting with our support Engineer. "
+    response.markdown += "Or see what I can do by asking for **/help**."
     return response
 
 
@@ -91,36 +92,155 @@ def do_something(incoming_msg):
 # what you send it.
 def show_card(incoming_msg):
     attachment = """
-    {
-        "contentType": "application/vnd.microsoft.card.adaptive",
-        "content": {
-            "type": "AdaptiveCard",
-            "body": [{
-                "type": "Container",
-                "items": [{
-                    "type": "TextBlock",
-                    "text": "This is a sample of the adaptive card system."
-                }]
-            }],
-            "actions": [{
-                    "type": "Action.Submit",
-                    "title": "Create",
-                    "data": "add",
-                    "style": "positive",
-                    "id": "button1"
-                },
-                {
-                    "type": "Action.Submit",
-                    "title": "Delete",
-                    "data": "remove",
-                    "style": "destructive",
-                    "id": "button2"
-                }
-            ],
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "version": "1.0"
+        {
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": {
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "type": "AdaptiveCard",
+                "version": "1.1",
+                "body": [
+                    {
+                        "type": "ColumnSet",
+                        "columns": [
+                            {
+                                "type": "Column",
+                                "items": [
+                                    {
+                                        "type": "Image",
+                                        "style": "Person",
+                                        "url": "https://developer.webex.com/images/webex-teams-logo.png",
+                                        "size": "Medium",
+                                        "height": "50px"
+                                    }
+                                ],
+                                "width": "auto"
+                            },
+                            {
+                                "type": "Column",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Cisco dCloud Support",
+                                        "weight": "Lighter",
+                                        "color": "Accent"
+                                    },
+                                    {
+                                        "type": "TextBlock",
+                                        "weight": "Bolder",
+                                        "text": "Issue Collection Form",
+                                        "horizontalAlignment": "Left",
+                                        "wrap": true,
+                                        "color": "Light",
+                                        "size": "Large",
+                                        "spacing": "Small"
+                                    }
+                                ],
+                                "width": "stretch"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TextBlock",
+                        "text": "Issue Summary:",
+                        "wrap": true
+                    },
+                    {
+                        "type": "Input.Text",
+                        "placeholder": "Text Field",
+                        "style": "text",
+                        "maxLength": 0,
+                        "id": "summary"
+                    },
+                    {
+                        "type": "TextBlock",
+                        "text": "Data Center:",
+                        "wrap": true
+                    },
+                    {
+                        "type": "Input.ChoiceSet",
+                        "id": "datacenter",
+                        "value": "Red",
+                        "choices": [
+                            {
+                                "title": "RTP",
+                                "value": "RTP"
+                            },
+                            {
+                                "title": "SJC",
+                                "value": "SJC"
+                            },
+                            {
+                                "title": "EMEAR",
+                                "value": "EMEAR"
+                            },
+                            {
+                                "title": "SNG",
+                                "value": "SNG"
+                            },
+                            {
+                                "title": "CHI",
+                                "value": "CHI"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "TextBlock",
+                        "text": "Demo Name:",
+                        "wrap": true
+                    },
+                    {
+                        "type": "Input.Text",
+                        "placeholder": "Text Field",
+                        "style": "text",
+                        "maxLength": 0,
+                        "id": "demo_name"
+                    },
+                    {
+                        "type": "TextBlock",
+                        "text": "Session ID:",
+                        "wrap": true
+                    },
+                    {
+                        "type": "Input.ChoiceSet",
+                        "id": "Session_id",
+                        "value": "Red",
+                        "choices": [
+                            {
+                                "title": "1598",
+                                "value": "1598"
+                            },
+                            {
+                                "title": "1599",
+                                "value": "1599"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Input.Toggle",
+                        "title": "Create a support ticket?",
+                        "id": "create_ticket",
+                        "wrap": true,
+                        "value": "true"
+                    },
+                    {
+                        "type": "Input.Toggle",
+                        "title": "Start Chat with Support Engineer?",
+                        "id": "start_chat",
+                        "wrap": true,
+                        "value": "true"
+                    }
+                ],
+                "actions": [
+                    {
+                        "type": "Action.Submit",
+                        "title": "Submit",
+                        "data": {
+                            "form_action": "Submit"
+                        }
+                    }
+                ]
+            }
         }
-    }
     """
     backupmessage = "This is an example using Adaptive Cards."
 
@@ -139,9 +259,81 @@ def handle_cards(api, incoming_msg):
     :param incoming_msg: The incoming message object from Teams
     :return: A text or markdown based reply
     """
+    # Loopkup details about sender
+    # sender = bot.teams.people.get(incoming_msg.personId)
+    # print(sender)
     m = get_attachment_actions(incoming_msg["data"]["id"])
+    sender = m['personId']
+    res_create_ticket = None
+    if m["inputs"]["create_ticket"]:
+        res_create_ticket = create_jira_issue(m)
 
-    return "card action was - {}".format(m["inputs"])
+    if m["inputs"]["start_chat"]:
+        res = create_room(res_create_ticket['key'])
+        print(res)
+        rid = res['id']
+        add_people_to_room(rid, sender)
+        add_people_to_room(rid, 'Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jNjQxYmEzYy1lYWY4LTQ3OGUtYTRiNC03MjNkYjUyYjc4OGU')
+
+    # response = Response()
+
+    msg = "[{0}](http://lon-xse-services.cisco.com/browse/{0}) created, " \
+        "Please join Webex space **{0}** to " \
+        "chat with support engineer,".format(res_create_ticket['key'])
+
+    return msg
+
+
+def create_jira_issue(data):
+    headers = {
+        "content-type": "application/json",
+        "Authorization": "Basic eXV0cGFuZy1sb2NhbDp6YXExeHN3Mg=="
+    }
+
+    url = "http://lon-xse-services.cisco.com/rest/api/2/issue"
+
+    if len(data['inputs']['summary']) <= 1:
+        data['inputs']['summary'] = 'TEST Summary'
+
+    data = {
+        "fields": {
+            "project": {
+                "key": "TKT"
+            },
+            "summary": data['inputs']['summary'],
+            "description": "test jira res",
+            "issuetype": {
+                "name": "dCloud Support"
+            }
+        }
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+
+
+def add_people_to_room(rid, people):
+    headers = {
+        "content-type": "application/json; charset=utf-8",
+        "authorization": "Bearer " + teams_token,
+    }
+
+    url = "https://webexapis.com/v1/memberships"
+    data = {"roomId": rid, "personId": people}
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+
+
+def create_room(rname):
+    headers = {
+        "content-type": "application/json; charset=utf-8",
+        "authorization": "Bearer " + teams_token,
+    }
+
+    url = "https://webexapis.com/v1/rooms"
+    data = {"title": rname}
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
 
 
 # Temporary function to send a message with a card attachment (not yet
@@ -230,6 +422,39 @@ def current_time(incoming_msg):
     return reply
 
 
+def sign_in(incoming_msg):
+    # Loopkup details about sender
+    sender = bot.teams.people.get(incoming_msg.personId)
+
+    # Create a Response object and craft a reply in Markdown.
+    response = Response()
+    response.markdown = "Hello {}, You are on call shift now. ".format(sender.firstName)
+    response.markdown += "New chat case will be signed to you!"
+    return response
+
+
+def sign_out(incoming_msg):
+    # Loopkup details about sender
+    sender = bot.teams.people.get(incoming_msg.personId)
+
+    # Create a Response object and craft a reply in Markdown.
+    response = Response()
+    response.markdown = "Hello {}, You are off now. ".format(sender.firstName)
+    response.markdown += "Have a good day!"
+    return response
+
+
+def survey(incoming_msg):
+    # Loopkup details about sender
+    sender = bot.teams.people.get(incoming_msg.personId)
+
+    # Create a Response object and craft a reply in Markdown.
+    response = Response()
+    response.markdown = "Hello {}, this function still in development ".format(sender.firstName)
+    response.markdown += "Thank you for your feedback!"
+    return response
+
+
 # Create help message for current_time command
 current_time_help = "Look up the current time for a given timezone. "
 current_time_help += "_Example: **/time EST**_"
@@ -238,13 +463,16 @@ current_time_help += "_Example: **/time EST**_"
 bot.set_greeting(greeting)
 
 # Add new commands to the bot.
+bot.add_command("/survey", "Please give us feedback.", survey)
+bot.add_command("/sign-in", "This is **SE only** function, SE on call sign-in", sign_in)
+bot.add_command("/sign-out", "This is **SE only** function, SE on call sign-out", sign_out)
 bot.add_command("attachmentActions", "*", handle_cards)
-bot.add_command("/showcard", "show an adaptive card", show_card)
-bot.add_command("/dosomething", "help for do something", do_something)
-bot.add_command(
-    "/demo", "Sample that creates a Teams message to be returned.", ret_message
-)
-bot.add_command("/time", current_time_help, current_time)
+bot.add_command("/support", "start live chat with Support Engineer", show_card)
+# bot.add_command("/dosomething", "help for do something", do_something)
+# bot.add_command(
+#     "/demo", "Sample that creates a Teams message to be returned.", ret_message
+# )
+# bot.add_command("/time", current_time_help, current_time)
 
 # Every bot includes a default "/echo" command.  You can remove it, or any
 # other command with the remove_command(command) method.
