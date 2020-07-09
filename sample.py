@@ -15,6 +15,7 @@ bot_email = os.getenv("TEAMS_BOT_EMAIL")
 teams_token = os.getenv("TEAMS_BOT_TOKEN")
 bot_url = os.getenv("TEAMS_BOT_URL")
 bot_app_name = os.getenv("TEAMS_BOT_APP_NAME")
+jira_token = os.getenv("JIRA_TOKEN")
 
 # Example: How to limit the approved Webex Teams accounts for interaction
 #          Also uncomment the parameter in the instantiation of the new bot
@@ -293,7 +294,7 @@ def handle_cards(api, incoming_msg):
 def create_jira_issue(data):
     headers = {
         "content-type": "application/json",
-        "Authorization": "Basic eXV0cGFuZy1sb2NhbDp6YXExeHN3Mg=="
+        "Authorization": "Basic " + jira_token,
     }
 
     url = "http://lon-xse-services.cisco.com/rest/api/2/issue"
