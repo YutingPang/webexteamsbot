@@ -470,8 +470,8 @@ bot.set_greeting(greeting)
 
 # Add new commands to the bot.
 bot.add_command("/survey", "Please give us feedback.", survey)
-bot.add_admin_command("/sign-in", "This is **SE only** function, SE on call sign-in", sign_in)
-bot.add_admin_command("/sign-out", "This is **SE only** function, SE on call sign-out", sign_out)
+bot.add_command("/sign-in", "This is **SE only** function, SE on call sign-in", sign_in)
+bot.add_command("/sign-out", "This is **SE only** function, SE on call sign-out", sign_out)
 bot.add_command("attachmentActions", "*", handle_cards)
 bot.add_command("/support", "start live chat with Support Engineer", show_card)
 # bot.add_command("/dosomething", "help for do something", do_something)
