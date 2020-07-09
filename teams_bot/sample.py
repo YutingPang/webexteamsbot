@@ -3,18 +3,23 @@
 Sample code for using webexteamsbot
 """
 
+import json
 import os
+import sys
+
 import requests
+from datetime import datetime
+
+import cards as card_func
 from webexteamsbot import TeamsBot
 from webexteamsbot.models import Response
-import sys
-import json
 
 # Retrieve required details from environment variables
 bot_email = os.getenv("TEAMS_BOT_EMAIL")
 teams_token = os.getenv("TEAMS_BOT_TOKEN")
 bot_url = os.getenv("TEAMS_BOT_URL")
 bot_app_name = os.getenv("TEAMS_BOT_APP_NAME")
+jira_token = os.getenv("JIRA_TOKEN")
 
 # Example: How to limit the approved Webex Teams accounts for interaction
 #          Also uncomment the parameter in the instantiation of the new bot
@@ -42,6 +47,8 @@ if not bot_email or not teams_token or not bot_url or not bot_app_name:
         print("TEAMS_BOT_URL")
     if not bot_app_name:
         print("TEAMS_BOT_APP_NAME")
+    if not jira_token:
+        print("JIRA_TOKEN")
     sys.exit()
 
 # Create a Bot Object
@@ -65,6 +72,7 @@ bot = TeamsBot(
 # Create a custom bot greeting function returned when no command is given.
 # The default behavior of the bot is to return the '/help' command response
 def greeting(incoming_msg):
+    # TODO add admin user greeting message
     # Loopkup details about sender
     sender = bot.teams.people.get(incoming_msg.personId)
 
@@ -97,157 +105,10 @@ def do_something(incoming_msg):
 # put it inside of the "content" below, otherwise Webex won't understand
 # what you send it.
 def show_card(incoming_msg):
-    attachment = """
-        {
-            "contentType": "application/vnd.microsoft.card.adaptive",
-            "content": {
-                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                "type": "AdaptiveCard",
-                "version": "1.1",
-                "body": [
-                    {
-                        "type": "ColumnSet",
-                        "columns": [
-                            {
-                                "type": "Column",
-                                "items": [
-                                    {
-                                        "type": "Image",
-                                        "style": "Person",
-                                        "url": "https://developer.webex.com/images/webex-teams-logo.png",
-                                        "size": "Medium",
-                                        "height": "50px"
-                                    }
-                                ],
-                                "width": "auto"
-                            },
-                            {
-                                "type": "Column",
-                                "items": [
-                                    {
-                                        "type": "TextBlock",
-                                        "text": "Cisco dCloud Support",
-                                        "weight": "Lighter",
-                                        "color": "Accent"
-                                    },
-                                    {
-                                        "type": "TextBlock",
-                                        "weight": "Bolder",
-                                        "text": "Issue Collection Form",
-                                        "horizontalAlignment": "Left",
-                                        "wrap": true,
-                                        "color": "Light",
-                                        "size": "Large",
-                                        "spacing": "Small"
-                                    }
-                                ],
-                                "width": "stretch"
-                            }
-                        ]
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": "Issue Summary:",
-                        "wrap": true
-                    },
-                    {
-                        "type": "Input.Text",
-                        "placeholder": "Text Field",
-                        "style": "text",
-                        "maxLength": 0,
-                        "id": "summary"
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": "Data Center:",
-                        "wrap": true
-                    },
-                    {
-                        "type": "Input.ChoiceSet",
-                        "id": "datacenter",
-                        "value": "Red",
-                        "choices": [
-                            {
-                                "title": "RTP",
-                                "value": "RTP"
-                            },
-                            {
-                                "title": "SJC",
-                                "value": "SJC"
-                            },
-                            {
-                                "title": "EMEAR",
-                                "value": "EMEAR"
-                            },
-                            {
-                                "title": "SNG",
-                                "value": "SNG"
-                            },
-                            {
-                                "title": "CHI",
-                                "value": "CHI"
-                            }
-                        ]
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": "Demo Name:",
-                        "wrap": true
-                    },
-                    {
-                        "type": "Input.Text",
-                        "placeholder": "Text Field",
-                        "style": "text",
-                        "maxLength": 0,
-                        "id": "demo_name"
-                    },
-                    {
-                        "type": "TextBlock",
-                        "text": "Session ID:",
-                        "wrap": true
-                    },
-                    {
-                        "type": "Input.ChoiceSet",
-                        "id": "Session_id",
-                        "value": "Red",
-                        "choices": [
-                            {
-                                "title": "1598",
-                                "value": "1598"
-                            },
-                            {
-                                "title": "1599",
-                                "value": "1599"
-                            }
-                        ]
-                    },
-                    {
-                        "type": "Input.Toggle",
-                        "title": "Create a support ticket?",
-                        "id": "create_ticket",
-                        "wrap": true,
-                        "value": "true"
-                    },
-                    {
-                        "type": "Input.Toggle",
-                        "title": "Start Chat with Support Engineer?",
-                        "id": "start_chat",
-                        "wrap": true,
-                        "value": "true"
-                    }
-                ],
-                "actions": [
-                    {
-                        "type": "Action.Submit",
-                        "title": "Submit",
-                        "data": {
-                            "form_action": "Submit"
-                        }
-                    }
-                ]
-            }
-        }
-    """
+    # TODO card -> personEmail
+    sender = bot.teams.people.get(incoming_msg.personId)
+    attachment = card_func.issue_card(sender)
+
     backupmessage = "This is an example using Adaptive Cards."
 
     c = create_message_with_attachment(
@@ -293,7 +154,7 @@ def handle_cards(api, incoming_msg):
 def create_jira_issue(data):
     headers = {
         "content-type": "application/json",
-        "Authorization": "Basic eXV0cGFuZy1sb2NhbDp6YXExeHN3Mg=="
+        "Authorization": "Basic " + jira_token,
     }
 
     url = "http://lon-xse-services.cisco.com/rest/api/2/issue"
@@ -428,25 +289,88 @@ def current_time(incoming_msg):
     return reply
 
 
+def get_support_engineers():
+    with open("support_engineers.json", "r") as json_file:
+        support_engineers = json.load(json_file)
+    return support_engineers
+
+
+def show_online_se(incoming_msg):
+    support_engineers = get_support_engineers()["support_engineers"]
+
+    sender = bot.teams.people.get(incoming_msg.personId)
+    response = Response()
+    response.text = "Hello {}, following is list of support engineers: \n".format(sender.firstName)
+    for support_engineer in support_engineers:
+
+        response.text += "* {0} {1} ({2}) is online: {3} updated at {4}\n".format(
+            support_engineer["firstName"],
+            support_engineer["lastName"],
+            support_engineer["mail"],
+            str(support_engineer["is_online"]),
+            support_engineer["updated"]
+        )
+
+    return response
+
+
 def sign_in(incoming_msg):
+    support_engineers = get_support_engineers()
+
     # Loopkup details about sender
     sender = bot.teams.people.get(incoming_msg.personId)
 
-    # Create a Response object and craft a reply in Markdown.
     response = Response()
-    response.markdown = "Hello {}, You are on call shift now. ".format(sender.firstName)
-    response.markdown += "New chat case will be signed to you!"
+    for support_engineer in support_engineers["support_engineers"]:
+        if support_engineer["mail"] in sender.emails:
+            if not support_engineer["is_online"]:
+                support_engineer["is_online"] = True
+
+                now = datetime.now()
+
+                support_engineer["updated"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                with open("support_engineers.json", "w") as json_file:
+                    json.dump(support_engineers, json_file)
+
+                response.text = "Hello {}, You are signed in now. ".format(sender.firstName)
+                response.text += "New chat case will be signed to you!"
+            else:
+                response.text = "Hello {}, You've signed in earlier" \
+                           ", do you want to sign out? use /sign-out to sign out.".format(sender.firstName)
+
+            return response
+
+    response.text = "Hello {}, You are not in support engineer list!".format(sender.firstName)
     return response
 
 
 def sign_out(incoming_msg):
+    support_engineers = get_support_engineers()
+
     # Loopkup details about sender
     sender = bot.teams.people.get(incoming_msg.personId)
 
-    # Create a Response object and craft a reply in Markdown.
     response = Response()
-    response.markdown = "Hello {}, You are off now. ".format(sender.firstName)
-    response.markdown += "Have a good day!"
+    for support_engineer in support_engineers["support_engineers"]:
+        if support_engineer["mail"] in sender.emails:
+            if support_engineer["is_online"]:
+                support_engineer["is_online"] = False
+
+                now = datetime.now()
+
+                support_engineer["updated"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                with open("support_engineers.json", "w") as json_file:
+                    json.dump(support_engineers, json_file)
+
+                response.text = "Hello {}, You are signed out now. ".format(sender.firstName)
+                response.text += "Have a great day!"
+            else:
+                response.text = "Hello {}, You've signed out already" \
+                                ", do you want to sign in? use /sign-in to sign in.".format(sender.firstName)
+
+            return response
+
+    response.text = "Hello {}, You are not in support engineer list!".format(sender.firstName)
     return response
 
 
@@ -468,17 +392,15 @@ current_time_help += "_Example: **/time EST**_"
 # Set the bot greeting.
 bot.set_greeting(greeting)
 
+# Add new admin commands to the bot.
+bot.add_admin_command("/list-se", "List Support Engineers and status", show_online_se)
+bot.add_admin_command("/sign-in", "This is **SE only** function, SE on call sign-in", sign_in)
+bot.add_admin_command("/sign-out", "This is **SE only** function, SE on call sign-out", sign_out)
+
 # Add new commands to the bot.
 bot.add_command("/survey", "Please give us feedback.", survey)
-bot.add_command("/sign-in", "This is **SE only** function, SE on call sign-in", sign_in)
-bot.add_command("/sign-out", "This is **SE only** function, SE on call sign-out", sign_out)
 bot.add_command("attachmentActions", "*", handle_cards)
 bot.add_command("/support", "start live chat with Support Engineer", show_card)
-# bot.add_command("/dosomething", "help for do something", do_something)
-# bot.add_command(
-#     "/demo", "Sample that creates a Teams message to be returned.", ret_message
-# )
-# bot.add_command("/time", current_time_help, current_time)
 
 # Every bot includes a default "/echo" command.  You can remove it, or any
 # other command with the remove_command(command) method.
